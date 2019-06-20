@@ -130,13 +130,13 @@ end_time - start_time
 
 ```{r}
 f14mod
-save(f14mod, ascii=FALSE, file='simple_syn_combined_w_slope_14states_2500inds') 
+save(f14mod, ascii=FALSE, file='Synthetic_Experiments/simple_syn_combined_w_slope_14states_2500inds') 
 ```
 
 ```{r}
 # set up test data
 #test <- view_ch_phh[280001:560000, ]
-write.csv(test, file="simple_syn_combined_w_slope_test_data_2500inds.csv")
+write.csv(test, file="Synthetic_Data/simple_syn_combined_w_slope_test_data_2500inds.csv")
 ```
 # only include the first 8 quarters from test data
 # test set includes 2500 individuals
@@ -375,7 +375,7 @@ print(head(population_df, 30))
 
 
 ```{r}
-write.csv(population_df, file="simple_syn_combined_w_slope_depmix_forecast__train2500inds_1000inds.csv")
+write.csv(population_df, file="Synthetic_Data/simple_syn_combined_w_slope_depmix_forecast__train2500inds_1000inds.csv")
 ```
 
 

@@ -11,8 +11,8 @@ output: html_document
 library(Brobdingnag)
 library(depmixS4)
 getwd()
-setwd("C:/Users/whsu014/Documents/PhD/Data/VIEW/Synthetic_Experiments")
-simple_syn_df <- read.csv(file="combined_syn_view.csv", header=TRUE, sep=",")
+setwd("C:/Users/whsu014/Documents/PhD/Data/VIEW/")
+simple_syn_df <- read.csv(file="Synthetic_Data/combined_syn_view.csv", header=TRUE, sep=",")
 
 ```
 
@@ -121,13 +121,13 @@ end_time - start_time
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 ```{r}
 f14mod
-save(f14mod, ascii=FALSE, file='simple_syn_combined_14states_1000inds_v2') 
+save(f14mod, ascii=FALSE, file='Synthetic_Experiments/simple_syn_combined_14states_1000inds_v2') 
 ```
 
 ```{r}
 # set up test data
 #test <- view_ch_phh[280001:560000, ]
-write.csv(test, file="simple_syn_combined_test_data_2500inds.csv")
+write.csv(test, file="Synthetic_Data/simple_syn_combined_test_data_2500inds.csv")
 ```
 # only include the first 8 quarters from test data
 # test set includes 2500 individuals
@@ -355,6 +355,6 @@ colnames(population_df) <- c("id", "quarter", "ag_age", "ag_sex", "ag_eth", "pt_
 print(head(population_df, 30))
 ```
 ```{r}
-write.csv(population_df, file="simple_syn_dive_forecast.csv")
+write.csv(population_df, file="Synthetic_Data/simple_syn_dive_forecast.csv")
 ```
 

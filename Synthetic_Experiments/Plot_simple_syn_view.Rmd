@@ -1,0 +1,142 @@
+---
+title: "Plot_simple_syn_VIEW"
+author: "William Hsu"
+date: "12 June 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+getwd()
+setwd("C:/Users/whsu014/Documents/PhD/Data/VIEW/")
+#syn_df <- read.csv(file=Synthetic_Data/simple_syn_flat_test_data_2500inds.csv", header=TRUE, sep=",")
+#forecast_df <- read.csv(file="simple_syn_flat_forecast.csv", header=TRUE, sep=",")
+#syn_df <- read.csv(file="Synthetic_Data/simple_syn_dive_test_data_2500inds.csv", header=TRUE, sep=",")
+#forecast_df <- read.csv(file="simple_syn_dive_forecast.csv", header=TRUE, sep=",")
+#syn_df <- read.csv(file="Synthetic_Data/simple_syn_rise_test_data_2500inds.csv", header=TRUE, sep=",")
+#forecast_df <- read.csv(file="simple_syn_rise_forecast.csv", header=TRUE, sep=",")
+#syn_df <- read.csv(file="Synthetic_Data/simple_syn_combined_test_data_2500inds_sex_nzdep_transformed.csv", header=TRUE, sep=",")
+#forecast_df <- read.csv(file="Synthetic_Data/simple_syn_combined_forecast_sex_nzdep_transformed.csv", header=TRUE, sep=",")
+syn_df <- read.csv(file="Synthetic_Data/simple_syn_combined_w_slope_test_data_2500inds.csv", header=TRUE, sep=",")
+forecast_df <- read.csv(file="Synthetic_Data/simple_syn_combined_w_slope_depmix_forecast_train2500inds_1000inds.csv", header=TRUE, sep=",")
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+dim(syn_df)
+colnames(syn_df)
+dim(forecast_df)
+colnames(forecast_df)
+```
+```{r}
+print(syn_df$tchdl[1:27])
+print(syn_df$ag_sex[70001:70020])
+```
+
+
+```{r}
+require(ggplot2)
+
+ind_no <- 509
+ind_no_char <- as.character((ind_no+1))
+ind_state_seq <- as.character(forecast_df[(ind_no*27+1):(ind_no*27+27), 22])
+ind_state_seq <- paste(unlist(ind_state_seq))
+
+sex <- forecast_df[(ind_no*27+1), 5]
+nzdep <- forecast_df[(ind_no*27+1), 7]
+
+if (sex==0) {
+  sex = 'Male'
+} else {
+  sex = 'Female'
+}
+#pdf("Plots/TCHDL_simple_syn_combined_w_slope_individual_510.pdf")
+plot_name <- paste("TCHDL Forecast - 14 states individual:", ind_no_char, " (", 
+                   sex , ", NZDep=", nzdep, ") ", sep=" ")
+#file_name <- paste(plot_name, ".pdf", sep="")
+#pdf(file_name)
+plot(forecast_df[(ind_no*27+1):(ind_no*27+27), 3],
+     forecast_df[(ind_no*27+1):(ind_no*27+27), 20],
+     xlim=c(0, 27), ylim=c(0,10),
+     type="n", xlab="QUARTERS", ylab="mmol/mmol",
+    main=plot_name )
+
+print(syn_df[(ind_no*27+1):(ind_no*27+27), 4])
+print(syn_df[(ind_no*27+1):(ind_no*27+27), 21])
+
+lines(syn_df[(ind_no*27+1):(ind_no*27+27), 4],
+      syn_df[(ind_no*27+1):(ind_no*27+27), 21],
+      type="b")
+print(forecast_df[(ind_no*27+1):(ind_no*27+27), 3])
+print(forecast_df[(ind_no*27+1):(ind_no*27+27), 20])
+lines(forecast_df[(ind_no*27+1):(ind_no*27+27), 3],
+      forecast_df[(ind_no*27+1):(ind_no*27+27), 20],
+     type="l")
+text(forecast_df[(ind_no*27+1):(ind_no*27+27), 3],
+     c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
+     #c(2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2), 
+     ind_state_seq)
+#dev.off()
+print(forecast_df[(ind_no*27+1):(ind_no*27+27), 22])
+
+```
+
+```{r}
+require(ggplot2)
+
+ind_no <- 999
+ind_no_char <- as.character(ind_no)
+ind_state_seq <- as.character(forecast_df[(ind_no*28+1):(ind_no*28+28), 22])
+ind_state_seq <- paste(unlist(ind_state_seq))
+
+
+pdf("Plots/TCHDL_simple_syn_combined_individual_1000.pdf")
+plot_name <- paste("TCHDL Forecast - 14 states individual:", ind_no_char, sep=" ")
+plot(forecast_df[(ind_no*28+1):(ind_no*28+28), 4],
+     forecast_df[(ind_no*28+1):(ind_no*28+28), 21],
+     xlim=c(0, 27), ylim=c(0,10),
+     type="n", xlab="QUARTERS", ylab="mmol",
+    main=plot_name )
+
+print(syn_df[(ind_no*28+1):(ind_no*28+28), 5])
+print(syn_df[(ind_no*28+1):(ind_no*28+28), 22])
+
+lines(syn_df[(ind_no*28+1):(ind_no*28+28), 5],
+      syn_df[(ind_no*28+1):(ind_no*28+28), 22],
+      type="b")
+print(forecast_df[(ind_no*28+1):(ind_no*28+28), 4])
+print(forecast_df[(ind_no*28+1):(ind_no*28+28), 21])
+lines(forecast_df[(ind_no*28+1):(ind_no*28+28), 4],
+      forecast_df[(ind_no*28+1):(ind_no*28+28), 21],
+     type="l")
+text(forecast_df[(ind_no*28+1):(ind_no*28+28), 4],
+     c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
+     #c(2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2), 
+     ind_state_seq)
+dev.off()
+print(forecast_df[(ind_no*28+1):(ind_no*28+28), 22])
+
+```
+
+# descriptive plot of sub_population
+
+```{r cars}
+gplot(data = noLLD_df[2241:9240, ], aes(x=QUARTERS, y=TCHDL, by=STUDENT_INDEX_MASTER,  color="F8766D")) +
+       geom_line(alpha=0.3, size=0.1) + ggtitle("Patients not on LLD (250 individuals)") + 
+       xlab("QUARTERS") +  ylab("TCHDL") + theme(plot.title = element_text(hjust = 0.5)) #+ scale_fill_manual(values = c("#F8766D", "#00BFC4", "#FC4E07"))
+ggsave("Plots/TCHDL-noLLD(patients81-330)MPR.pdf")
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
