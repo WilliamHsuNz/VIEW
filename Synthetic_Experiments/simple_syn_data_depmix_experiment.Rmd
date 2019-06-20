@@ -1,0 +1,360 @@
+---
+title: "simple synthetic data depmix experiment"
+author: "William Hsu"
+date: "10 June 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#install.packages("Brobdingnag")
+#install.packages("depmixS4")
+library(Brobdingnag)
+library(depmixS4)
+getwd()
+setwd("C:/Users/whsu014/Documents/PhD/Data/VIEW/Synthetic_Experiments")
+simple_syn_df <- read.csv(file="combined_syn_view.csv", header=TRUE, sep=",")
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+## check data type as well as unique values within 
+# factor variables
+
+```{r}
+print(class(simple_syn_df$id))
+print(class(simple_syn_df$quarter)) # change quarters to numerics
+print(class(simple_syn_df$ag_age))
+print(class(simple_syn_df$ag_sex))
+print(class(simple_syn_df$ag_eth))
+print(class(simple_syn_df$pt_nzdep))
+print(class(simple_syn_df$imp_hxdiab))
+print(class(simple_syn_df$pt_tc_hdl_ratio))
+print(class(simple_syn_df$pt_bps))
+print(class(simple_syn_df$pt_bpd))
+print(class(simple_syn_df$pt_smoke))
+print(class(simple_syn_df$imp_hxcvd))
+print(class(simple_syn_df$imp_hdl))
+print(class(simple_syn_df$imp_ldl))
+print(class(simple_syn_df$imp_tchol))
+print(class(simple_syn_df$PH_BL_LLD_ANY))
+print(class(simple_syn_df$PH_BL_AHT_ANY))
+print(class(simple_syn_df$pt_familyhistory))
+print(class(simple_syn_df$tchdl))
+
+print(unique(simple_syn_df$ag_eth))
+print(unique(simple_syn_df$ag_sex))
+
+
+print(which(is.na(simple_syn_df$ag_age)))
+```
+## Check distribution of ethnicity
+
+```{r}
+colnames(simple_syn_df)
+print((sum(simple_syn_df$ag_eth=='Eur')/28)/(length(unique(simple_syn_df$id))))
+print((sum(simple_syn_df$ag_eth=='Mao')/28)/(length(unique(simple_syn_df$id))))
+print((sum(simple_syn_df$ag_eth=='Ind')/28)/(length(unique(simple_syn_df$id))))
+print((sum(simple_syn_df$ag_eth=='Chi')/28)/(length(unique(simple_syn_df$id))))
+print((sum(simple_syn_df$ag_eth=='Oth')/28)/(length(unique(simple_syn_df$id))))
+print((sum(simple_syn_df$ag_eth=='Pac')/28)/(length(unique(simple_syn_df$id))))
+```
+## log transform numeric variables
+# relevel factor variables and set ordered to FALSE
+# subset to get train and test data
+```{r cars}
+dim(simple_syn_df)
+names(simple_syn_df)
+# factors are ordered
+simple_syn_df$ag_eth <- factor(simple_syn_df$ag_eth, ordered = FALSE)
+simple_syn_df$ag_sex <- factor(simple_syn_df$ag_sex, ordered = FALSE)
+simple_syn_df$ag_eth <- relevel(simple_syn_df$ag_eth, ref='Eur')
+simple_syn_df$ag_sex <- relevel(simple_syn_df$ag_sex, ref='Male') # ask Jim
+#if (FALSE) {
+#simple_syn_df$quarter <- log(simple_syn_df$quarter)
+simple_syn_df$ag_age <- log(simple_syn_df$ag_age)
+simple_syn_df$pt_tc_hdl_ratio <- log(simple_syn_df$pt_tc_hdl_ratio)
+simple_syn_df$pt_bps <- log(simple_syn_df$pt_bps)
+simple_syn_df$pt_bpd <- log(simple_syn_df$pt_bpd)
+simple_syn_df$imp_hdl <- log(simple_syn_df$imp_hdl)
+simple_syn_df$imp_ldl <- log(simple_syn_df$imp_ldl)
+simple_syn_df$imp_tchol <- log(simple_syn_df$imp_tchol)
+simple_syn_df$tchdl <- log(simple_syn_df$tchdl)
+#}
+dim(simple_syn_df)
+train <- simple_syn_df[1:70000,]
+test <- simple_syn_df[70001:140000,]
+```
+
+
+```{r}
+train[0:10, ]
+```
+
+```{r pressure, echo=FALSE}
+temp <- 0:999;# 
+prior_idx <- (temp*28) + 1
+prior_df <- train[prior_idx, ]
+train_sub <- train[1:28000,]
+
+mod <- depmix(list(tchdl~1),
+              data=train_sub,  
+              nstate=14,
+              prior=~ag_sex + ag_age + pt_bps + pt_bpd + pt_smoke + #pt_tc_hdl_ratio
+                     + imp_hxdiab  + pt_nzdep + ag_eth +                                                                      pt_familyhistory +                      imp_hxcvd + PH_BL_LLD_ANY + PH_BL_AHT_ANY,
+              transition=~ag_age + quarter + ag_sex + pt_nzdep +tchdl,
+              initdata=prior_df, 
+              family=list(gaussian()),
+              ntimes=rep(28, 1000))#7398
+set.seed(456) #changed from 345
+start_time <- Sys.time()
+f14mod <- fit(mod)
+end_time <- Sys.time()
+end_time - start_time
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+f14mod
+save(f14mod, ascii=FALSE, file='simple_syn_combined_14states_1000inds_v2') 
+```
+
+```{r}
+# set up test data
+#test <- view_ch_phh[280001:560000, ]
+write.csv(test, file="simple_syn_combined_test_data_2500inds.csv")
+```
+# only include the first 8 quarters from test data
+# test set includes 2500 individuals
+
+```{r}
+temp_idx <- c(1,2,3,4,5,6,7,8)
+test_idx <- vector() 
+for(i in 0:2499) { #7397
+  test_idx <- append(test_idx, temp_idx + (i*28))
+}
+test_df <- test[test_idx, ]
+
+temp <- 0:2499;
+prior_idx <- (temp*28) + 1
+test_prior_df <- test[prior_idx, ]
+
+#########################################################################
+# 29/4/2019
+# flatten values after last test so the test data does not look ahead to 
+# interpolated curves
+if (FALSE) {
+test_flat_df <- data.frame()
+for(i in 1:2500) { #7398
+  last_idx <- i * 8
+  ind_df <- test_df[(last_idx-7):last_idx, ]
+  #find index of the last occurrence of TEST
+  idx_list <- which(ind_df$TEST == 1)
+  idx <- idx_list[length(idx_list)]
+  TCHDL_v <- ind_df$TCHDL[idx]
+  for(j in idx:8) {
+    ind_df$TCHDL[j] <- TCHDL_v
+  }
+  test_flat_df <- rbind(test_flat_df, ind_df)
+}
+}
+```
+
+
+```{r}
+print(dim(test_df))
+print(dim(test_prior_df))
+print(test_prior_df[2490:2500,])
+```
+
+              
+              
+```{r}
+newmod <- depmix(list(tchdl~1),
+              data=test_df,  
+              nstate=14,
+              prior=~ag_sex + ag_age + pt_bps + pt_bpd + pt_smoke + #pt_tc_hdl_ratio
+                     + imp_hxdiab  + pt_nzdep + ag_eth +                                                              pt_familyhistory + imp_hxcvd + PH_BL_LLD_ANY + PH_BL_AHT_ANY,
+              transition=~ag_age + quarter + ag_sex + pt_nzdep + tchdl,
+              initdata=test_prior_df, 
+              family=list(gaussian()),
+              ntimes=rep(8, 2500))
+newmod <- setpars(newmod, getpars(f14mod))
+state_seq <- viterbi(newmod)
+```
+
+# Data column names
+ [1] "X"                "id"               "quarter"          "ag_age"           "ag_sex"          
+ [6] "ag_eth"           "pt_nzdep"         "imp_hxdiab"       "pt_tc_hdl_ratio"  "pt_bps"          
+[11] "pt_bpd"           "pt_smoke"         "imp_hxcvd"        "imp_hdl"          "imp_ldl"         
+[16] "imp_tchol"        "PH_BL_LLD_ANY"    "PH_BL_AHT_ANY"    "pt_familyhistory" "tchdl"
+```{r}
+print(test_df[8,])
+```
+
+
+
+```{r}
+test_df <- subset(test_df, select=c(id, quarter, ag_age, ag_sex, ag_eth, pt_nzdep,                                               imp_hxdiab, pt_tc_hdl_ratio, pt_bps, pt_bpd,           
+                        pt_smoke, imp_hxcvd, imp_hdl, imp_ldl, imp_tchol,                                                        PH_BL_LLD_ANY, PH_BL_AHT_ANY, pt_familyhistory, tchdl))
+#test_df <- test_flat_df
+# for 18 state depmix model
+population_df <- data.frame()
+population_state_seq <- vector()
+for(i in 1:1000) {#7398 2500
+  last_idx <- i*8
+  #print("NEW INDIVIDUAL")
+  #print(i)
+  #print("***************")
+  individual_df <- data.frame()
+  individual_df <- rbind(individual_df, test_df[(last_idx-7):last_idx, ]) 
+  ID_v <- as.character(test_df$id[last_idx])
+  SEX_v <- as.character(test_df$ag_sex[last_idx]) #as.numeric(test_df$SEX[last_idx])
+  NZDEP_v <- test_df$pt_nzdep[last_idx]
+  ETHNICITY_v <- as.character(test_df$ag_eth[last_idx]) #as.numeric(test_df$ETHNICITY[last_idx])
+  
+  AGE_v <- test_df$ag_age[last_idx]
+  #age_list <- test_df$AGE[(last_idx-3):last_idx]
+  #age_freq <- sum(age_list==age)
+  #age_repeat <- 4-age_freq
+  #age_vector <- rep(age, age_repeat)
+  #quarter <- 0
+  #while(length(age_vector)<20) {
+  #  if((quarter%%4)==0) {
+  #    age <- exp(age)+1
+  #    age <- log(age)
+  #  }
+  #  age_vector <- append(age_vector, age) #log age
+  #  quarter <- quarter+1
+  #}
+  state_v <- state_seq[last_idx, 1]
+  ind_state_seq <- state_seq[(last_idx-7):last_idx, 1]
+  #LDL_v <- test_df$LDL[last_idx]
+  TCHDL_v <- test_df$tchdl[last_idx]
+  QUARTERS_v <- test_df$quarter[last_idx]
+  #TEST_v <- test_df$TEST[last_idx]
+  #STATINS_v <- test_df$STATINS[last_idx]
+  #ATORVASTATIN_v <- test_df$ATORVASTATIN[last_idx]
+  imp_hxdiab_v <- test_df$imp_hxdiab[last_idx]
+  pt_tc_hdl_ratio_v <- test_df$pt_tc_hdl_ratio[last_idx]
+  pt_bps_v <- test_df$pt_bps[last_idx]
+  pt_bpd_v <- test_df$pt_bpd[last_idx]
+  pt_smoke_v <- test_df$pt_smoke[last_idx]
+  imp_hxcvd_v <- test_df$imp_hxcvd[last_idx]
+  imp_hdl_v <- test_df$imp_hdl[last_idx]
+  imp_ldl_v <- test_df$imp_ldl[last_idx]
+  imp_tchol_v <- test_df$imp_tchol[last_idx]
+  PH_BL_LLD_ANY_v <- test_df$PH_BL_LLD_ANY[last_idx]
+  PH_BL_AHT_ANY_v <- test_df$PH_BL_AHT_ANY[last_idx]
+  pt_familyhistory_v <- test_df$pt_familyhistory[last_idx]
+
+  for(j in 1:20) { #20
+    # evaluate transition
+    # get transition probabilities of all states
+    #print("State")
+    #print(state_v)
+    #print("***************")
+    S1coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 1]
+    S2coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 2]
+    S3coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 3]
+    S4coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 4]
+    S5coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 5]
+    S6coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 6]
+    S7coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 7]
+    S8coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 8]
+    S9coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 9]
+    S10coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 10]
+    S11coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 11]
+    S12coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 12]
+    S13coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 13]
+    S14coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 14]
+    #S15coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 15]
+    #S16coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 16]
+    #S17coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 17]
+    #S18coefs <- newmod@transition[[state_v]]@parameters$coefficients[, 18]
+    
+    transition_p <- vector()
+    #AGE_v <- AGE_v + (j*0.25)
+    #quarter <- 
+    #if(FALSE){  
+    for(k in 1:14) {
+      k_coefs <- newmod@transition[[state_v]]@parameters$coefficients[, k]
+    
+      t_p <- as.numeric(exp(as.brob(k_coefs[1] + k_coefs[2]*AGE_v +
+                   k_coefs[3]*QUARTERS_v + k_coefs[4]*SEX_v + k_coefs[5]*NZDEP_v +
+                     k_coefs[6]*TCHDL_v))/
+             (exp(as.brob(S1coefs[1] + S1coefs[2]*AGE_v + S1coefs[3]*QUARTERS_v +
+                    S1coefs[4]*SEX_v + S1coef[5]*NZDEP_v + S1coef[6]*TCHDL_v)) +
+              exp(as.brob(S2coefs[1] + S2coefs[2]*AGE_v + S2coefs[3]*QUARTERS_v +
+                    S2coefs[4]*SEX_v + S2coefs[5]*NZDEP_v + S2coefs[6]*TCHDL_v)) +
+              exp(as.brob(S3coefs[1] + S3coefs[2]*AGE_v + S3coefs[3]*QUARTERS_v +
+                    S3coefs[4]*SEX_v + S3coefs[5]*NZDEP_v + S3coefs[6]*TCHDL_v)) +
+              exp(as.brob(S4coefs[1] + S4coefs[2]*AGE_v + S4coefs[3]*QUARTERS_v +
+                    S4coefs[4]*SEX_v + S4coefs[5]*NZDEP_v + S4coefs[6]*TCHDL_v)) +
+              exp(as.brob(S5coefs[1] + S5coefs[2]*AGE_v + S5coefs[3]*QUARTERS_v +
+                    S5coefs[4]*SEX_v + S5coefs[5]*NZDEP_v + S5coefs[6]*TCHDL_v)) +
+              exp(as.brob(S6coefs[1] + S6coefs[2]*AGE_v + S6coefs[3]*QUARTERS_v +
+                    S6coefs[4]*SEX_v + S6coefs[5]*NZDEP_v + S6coefs[6]*TCHDL_v)) +
+              exp(as.brob(S7coefs[1] + S7coefs[2]*AGE_v + S7coefs[3]*QUARTERS_v +
+                    S7coefs[4]*SEX_v + S7coefs[5]*NZDEP_v + S7coefs[6]*TCHDL_v)) +
+              exp(as.brob(S8coefs[1] + S8coefs[2]*AGE_v + S8coefs[3]*QUARTERS_v +
+                    S8coefs[4]*SEX_v + S8coefs[5]*NZDEP_v + S8coefs[6]*TCHDL_v)) +
+              exp(as.brob(S9coefs[1] + S9coefs[2]*AGE_v + S9coefs[3]*QUARTERS_v +
+                    S9coefs[4]*SEX_v + S9coefs[5]*NZDEP_v + S9coefs[6]*TCHDL_v)) +
+              exp(as.brob(S10coefs[1] + S10coefs[2]*AGE_v + S10coefs[3]*QUARTERS_v +
+                    S10coefs[4]*SEX_v + S10coefs[5]*NZDEP_v + S10coefs[6]*TCHDL_v)) +
+              exp(as.brob(S11coefs[1] + S11coefs[2]*AGE_v + S11coefs[3]*QUARTERS_v +
+                    S11coefs[4]*SEX_v + S11coefs[5]*NZDEP_v + S11coefs[6]*TCHDL_v)) +
+              exp(as.brob(S12coefs[1] + S12coefs[2]*AGE_v + S12coefs[3]*QUARTERS_v +
+                    S12coefs[4]*SEX_v + S12coefs[5]*NZDEP_v + S12coefs[6]*TCHDL_v)) +
+              exp(as.brob(S13coefs[1] + S13coefs[2]*AGE_v + S13coefs[3]*QUARTERS_v +
+                    S13coefs[4]*SEX_v + S13coefs[5]*NZDEP_v + S13coefs[6]*TCHDL_v)) +
+              exp(as.brob(S14coefs[1] + S14coefs[2]*AGE_v + S14coefs[3]*QUARTERS_v +
+                    S14coefs[4]*SEX_v + S14coefs[5]*NZDEP_v + S14coefs[6]*TCHDL_v))))
+      transition_p <- append(transition_p, t_p)
+    }
+  
+    state_v <-sample(c(1,2,3,4,5,6,7,8,9,10,11,12,13,14),
+                     size=1, prob=transition_p)
+   
+    ##########################################
+    mean <- newmod@response[[state_v]][[1]]@parameters$coefficients
+    # sd <- newmod@response[[state_v]][[1]]@parameters$sd
+    TCHDL_v <- mean # using mean of gaussian for forercast    rnorm(1, mean, sd)
+    #print("LDL")
+    #print(LDL_v)
+    ##########################################
+    QUARTERS_v <- j+7
+    AGE_v = AGE_v + log((j*0.25))
+    forecast_vector <- c(ID_v, QUARTERS_v, AGE_v, SEX_v, ETHNICITY_v, NZDEP_v, 
+                         imp_hxdiab_v, pt_tc_hdl_ratio_v, pt_bps_v, pt_bpd_v,
+                         pt_smoke_v, imp_hxcvd_v, imp_hdl_v, imp_ldl_v, imp_tchol_v,
+                         PH_BL_LLD_ANY_v, PH_BL_AHT_ANY_v, pt_familyhistory_v, TCHDL_v)
+    forecast_df <- t(data.frame(forecast_vector))
+    colnames(forecast_df) <- c("id", "quarter", "ag_age", "ag_sex", "ag_eth", "pt_nzdep",                                               "imp_hxdiab", "pt_tc_hdl_ratio", "pt_bps", "pt_bpd",           
+                               "pt_smoke", "imp_hxcvd", "imp_hdl", "imp_ldl", "imp_tchol",                                              "PH_BL_LLD_ANY", "PH_BL_AHT_ANY", "pt_familyhistory", "tchdl")
+    individual_df <- rbind(individual_df, forecast_df)
+    ind_state_seq <- append(ind_state_seq, state_v)
+  }
+  #individual_df <- individual_df[, 1:11]
+  population_state_seq <- append(population_state_seq, ind_state_seq)
+  population_df <- rbind(population_df, individual_df)
+  if(i%%10==0) {
+    print(i)
+  }
+}
+population_df <- cbind(population_df, population_state_seq)
+colnames(population_df) <- c("id", "quarter", "ag_age", "ag_sex", "ag_eth", "pt_nzdep",                                               "imp_hxdiab", "pt_tc_hdl_ratio", "pt_bps", "pt_bpd",           
+                               "pt_smoke", "imp_hxcvd", "imp_hdl", "imp_ldl", "imp_tchol",                                              "PH_BL_LLD_ANY", "PH_BL_AHT_ANY", "pt_familyhistory", "tchdl",
+                              "hidden_state")
+print(head(population_df, 30))
+```
+```{r}
+write.csv(population_df, file="simple_syn_dive_forecast.csv")
+```
+
